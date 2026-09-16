@@ -1,5 +1,5 @@
 # CardFlow AI
-
+https://conternico845.github.io/CardFlow-AI/
 Una aplicación web de flashcards interactiva para aprender cualquier idioma: inglés, francés, portugués, alemán, japonés, italiano o cualquier combinación que quieras practicar. CardFlow AI propone rondas cortas de estudio: muestra una tarjeta, permite voltearla para ver la traducción y pide una autoevaluación al estilo Tinder. Es una aplicación estática, sin servidor ni dependencias, preparada para publicarse gratis en el repositorio oficial [CONTERNICO845/CardFlow-AI](https://github.com/CONTERNICO845/CardFlow-AI).
 
 ## Características
