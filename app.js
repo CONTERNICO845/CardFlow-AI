@@ -261,5 +261,6 @@ document.addEventListener("keydown", (event) => {
 });
 
 setupDrag();
-applyTheme(localStorage.getItem("cardflow-theme") === "dark" || (!localStorage.getItem("cardflow-theme") && window.matchMedia("(prefers-color-scheme: dark)").matches));
+const savedTheme = localStorage.getItem("cardflow-theme");
+applyTheme(savedTheme ? savedTheme === "dark" : true);
 readCards({ quiet: true });

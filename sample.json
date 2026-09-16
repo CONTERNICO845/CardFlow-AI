@@ -1,14 +1,14 @@
 [
-  { "front": "Hello", "back": "Hola" },
-  { "front": "Thank you", "back": "Gracias" },
-  { "front": "How are you?", "back": "¿Cómo estás?" },
-  { "front": "See you later", "back": "Hasta luego" },
-  { "front": "I would like", "back": "Me gustaría" },
-  { "front": "Where is the station?", "back": "¿Dónde está la estación?" },
+  { "front": "Bonjour", "back": "Hola" },
+  { "front": "Danke", "back": "Gracias" },
+  { "front": "Obrigado", "back": "Gracias" },
+  { "front": "Good morning", "back": "Buenos días" },
+  { "front": "Comment ça va ?", "back": "¿Cómo estás?" },
+  { "front": "Bitte", "back": "Por favor / De nada" },
+  { "front": "Até logo", "back": "Hasta luego" },
+  { "front": "Wo ist der Bahnhof?", "back": "¿Dónde está la estación?" },
   { "front": "Nice to meet you", "back": "Encantado de conocerte" },
-  { "front": "Could you help me?", "back": "¿Podrías ayudarme?" },
-  { "front": "I don't understand", "back": "No entiendo" },
-  { "front": "Have a good day", "back": "Que tengas un buen día" },
-  { "front": "Maybe", "back": "Quizá" },
-  { "front": "I am learning", "back": "Estoy aprendiendo" }
+  { "front": "Je ne comprends pas", "back": "No entiendo" },
+  { "front": "Eu estou aprendendo", "back": "Estoy aprendiendo" },
+  { "front": "Guten Tag", "back": "Buenos días" }
 ]

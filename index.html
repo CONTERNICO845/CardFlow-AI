@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
   </head>
-  <body>
+  <body class="dark-mode">
     <main class="app-shell">
       <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Activar modo oscuro">
         <span class="theme-icon" aria-hidden="true">☾</span>
@@ -19,9 +19,9 @@
       <section id="setup-screen" class="screen setup-screen" aria-labelledby="app-title">
         <header class="hero">
           <div class="brand-mark" aria-hidden="true">C</div>
-          <p class="eyebrow">Flashcards que fluyen contigo</p>
+          <p class="eyebrow">Flashcards para cualquier idioma</p>
           <h1 id="app-title">CardFlow <em>AI</em></h1>
-          <p class="hero-copy">Crea una sesión breve, aprende a tu ritmo y convierte cada respuesta en una señal para tu próxima ronda.</p>
+          <p class="hero-copy">Practica cualquier idioma, aprende a tu ritmo y convierte cada respuesta en una señal para tu próxima ronda.</p>
         </header>
 
         <div class="setup-grid">
@@ -87,7 +87,11 @@
           <summary><span class="sparkle" aria-hidden="true">✦</span> Genera tu JSON con cualquier IA <span class="summary-arrow">⌄</span></summary>
           <div class="prompt-content">
             <p>Copia este prompt, pégalo en tu IA favorita y después pega aquí su respuesta:</p>
-            <pre id="ai-prompt">Actúa como un generador de flashcards JSON. A continuación te proporcionaré una lista continua de palabras, frases cortas o expresiones en inglés (separadas por comas o espacios). Tu tarea es procesarlas, traducirlas al español de forma natural y estructurarlas estrictamente en formato de arreglo JSON válido con las claves 'front' (término en inglés) y 'back' (significado en español). No agregues texto adicional, solo devuelve el código JSON.</pre>
+            <pre id="ai-prompt">Actúa como un generador de flashcards JSON multilingüe. Antes de procesar mi lista, realiza lo siguiente:
+1. Si no especifico los idiomas en mi primer mensaje, pregúntame: '¿Qué idioma quieres practicar?' y '¿A qué idioma quieres traducirlo?'.
+2. Si detectas los idiomas automáticamente en las palabras/frases que te envíe, procede directamente.
+3. Procesa la lista de términos (separados por comas, saltos de línea o espacios) y tradúcelos de forma natural.
+4. Genera EXCLUSIVAMENTE un arreglo JSON válido con la estructura [{'front': 'término a practicar', 'back': 'traducción/significado'}]. No agregues texto ni explicaciones adicionales fuera del código JSON.</pre>
             <button id="copy-prompt" class="secondary-button" type="button">Copiar mini-prompt</button>
           </div>
         </details>
@@ -108,8 +112,8 @@
           <p class="swipe-hint">Toca para voltear · desliza para responder</p>
           <div id="card-stack" class="card-stack">
             <article id="flashcard" class="flashcard" tabindex="0" role="button" aria-label="Voltear tarjeta">
-              <div class="card-face card-front"><span class="card-label">Término</span><p id="card-front-text"></p><span class="flip-note">Toca para ver el significado ↻</span></div>
-              <div class="card-face card-back"><span class="card-label">Significado</span><p id="card-back-text"></p><span class="flip-note">Toca para volver ↻</span></div>
+              <div class="card-face card-front"><span class="card-label">Término a practicar</span><p id="card-front-text"></p><span class="flip-note">Toca para ver la traducción ↻</span></div>
+              <div class="card-face card-back"><span class="card-label">Traducción / significado</span><p id="card-back-text"></p><span class="flip-note">Toca para volver ↻</span></div>
               <span id="swipe-no" class="swipe-stamp no-stamp">AÚN NO</span>
               <span id="swipe-yes" class="swipe-stamp yes-stamp">¡SÍ!</span>
               <span id="swipe-review" class="swipe-stamp review-stamp">REPASAR</span>
