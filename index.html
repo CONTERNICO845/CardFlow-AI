@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="CardFlow AI: flashcards interactivas para aprender idiomas." />
+    <title>CardFlow AI · Aprende con ritmo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section id="setup-screen" class="screen setup-screen" aria-labelledby="app-title">
+        <header class="hero">
+          <div class="brand-mark" aria-hidden="true">C</div>
+          <p class="eyebrow">Flashcards que fluyen contigo</p>
+          <h1 id="app-title">CardFlow <em>AI</em></h1>
+          <p class="hero-copy">Crea una sesión breve, aprende a tu ritmo y convierte cada respuesta en una señal para tu próxima ronda.</p>
+        </header>
+
+        <div class="setup-grid">
+          <section class="panel session-panel" aria-labelledby="session-title">
+            <div class="panel-heading">
+              <span class="step">01</span>
+              <h2 id="session-title">Configura tu sesión</h2>
+            </div>
+            <div class="fields-grid">
+              <label>
+                Tarjetas por ronda
+                <input id="cards-per-round" type="number" min="1" value="10" inputmode="numeric" />
+              </label>
+              <div class="field-group">
+                <label for="seconds-per-card">Segundos por tarjeta</label>
+                <div class="input-with-toggle">
+                  <input id="seconds-per-card" type="number" min="1" value="15" inputmode="numeric" />
+                  <label class="toggle-label" title="Desactivar temporizador">
+                    <input id="timer-enabled" type="checkbox" checked />
+                    <span class="toggle" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+              <label>
+                Descanso tras la ronda
+                <select id="break-enabled">
+                  <option value="none">Sin descanso</option>
+                  <option value="30">30 segundos</option>
+                  <option value="60">1 minuto</option>
+                  <option value="120">2 minutos</option>
+                </select>
+              </label>
+            </div>
+            <p class="field-hint">El temporizador marca la tarjeta como “repasar” si se agota.</p>
+          </section>
+
+          <section class="panel content-panel" aria-labelledby="content-title">
+            <div class="panel-heading">
+              <span class="step">02</span>
+              <h2 id="content-title">Añade tus tarjetas</h2>
+            </div>
+            <div class="source-tabs" role="tablist" aria-label="Fuente de tarjetas">
+              <button class="source-tab active" data-source="paste" role="tab" aria-selected="true">Pegar JSON</button>
+              <button class="source-tab" data-source="file" role="tab" aria-selected="false">Cargar archivo</button>
+            </div>
+            <div id="paste-source" class="source-content">
+              <label class="sr-only" for="json-input">Tarjetas en formato JSON</label>
+              <textarea id="json-input" rows="7" spellcheck="false" placeholder='[{"front":"hello","back":"hola"}]'></textarea>
+              <button id="load-sample" class="text-button" type="button">Usar tarjetas de ejemplo</button>
+            </div>
+            <div id="file-source" class="source-content hidden">
+              <label class="file-drop" for="json-file">
+                <input id="json-file" type="file" accept="application/json,.json" />
+                <span class="upload-icon" aria-hidden="true">↑</span>
+                <span><strong>Elige un archivo JSON</strong><small>o arrástralo aquí</small></span>
+              </label>
+            </div>
+            <p id="data-status" class="data-status" aria-live="polite">Incluye al menos una tarjeta válida.</p>
+          </section>
+        </div>
+
+        <details class="prompt-card">
+          <summary><span class="sparkle" aria-hidden="true">✦</span> Genera tu JSON con cualquier IA <span class="summary-arrow">⌄</span></summary>
+          <div class="prompt-content">
+            <p>Copia este prompt, pégalo en tu IA favorita y después pega aquí su respuesta:</p>
+            <pre id="ai-prompt">Actúa como un generador de flashcards JSON. A continuación te proporcionaré una lista continua de palabras, frases cortas o expresiones en inglés (separadas por comas o espacios). Tu tarea es procesarlas, traducirlas al español de forma natural y estructurarlas estrictamente en formato de arreglo JSON válido con las claves 'front' (término en inglés) y 'back' (significado en español). No agregues texto adicional, solo devuelve el código JSON.</pre>
+            <button id="copy-prompt" class="secondary-button" type="button">Copiar mini-prompt</button>
+          </div>
+        </details>
+
+        <button id="start-session" class="primary-button" type="button">Empezar a estudiar <span aria-hidden="true">→</span></button>
+      </section>
+
+      <section id="study-screen" class="screen study-screen hidden" aria-live="polite">
+        <header class="study-header">
+          <button id="exit-session" class="icon-button" type="button" aria-label="Volver a la configuración">×</button>
+          <div class="progress-wrap">
+            <p id="progress-label">Tarjeta 1 de 10</p>
+            <div class="progress-track"><span id="progress-bar"></span></div>
+          </div>
+          <div id="timer-wrap" class="timer-wrap" aria-label="Tiempo restante"><span id="timer-value">15</span><small>s</small></div>
+        </header>
+        <div class="study-stage">
+          <p class="swipe-hint">Toca para voltear · desliza para responder</p>
+          <div id="card-stack" class="card-stack">
+            <article id="flashcard" class="flashcard" tabindex="0" role="button" aria-label="Voltear tarjeta">
+              <div class="card-face card-front"><span class="card-label">Término</span><p id="card-front-text"></p><span class="flip-note">Toca para ver el significado ↻</span></div>
+              <div class="card-face card-back"><span class="card-label">Significado</span><p id="card-back-text"></p><span class="flip-note">Toca para volver ↻</span></div>
+              <span id="swipe-no" class="swipe-stamp no-stamp">AÚN NO</span>
+              <span id="swipe-yes" class="swipe-stamp yes-stamp">¡SÍ!</span>
+              <span id="swipe-review" class="swipe-stamp review-stamp">REPASAR</span>
+            </article>
+          </div>
+          <p id="keyboard-hint" class="keyboard-hint">Atajos: ← sí la supe · → aún no · ↓ repasar</p>
+        </div>
+        <nav class="answer-controls" aria-label="Evaluar la tarjeta">
+          <button class="answer-btn knew" data-result="knew" type="button"><span>←</span><strong>Sí la supe</strong></button>
+          <button class="answer-btn review" data-result="review" type="button"><span>↓</span><strong>Repasar</strong></button>
+          <button class="answer-btn missed" data-result="missed" type="button"><span>→</span><strong>Aún no</strong></button>
+        </nav>
+      </section>
+
+      <section id="summary-screen" class="screen summary-screen hidden" aria-labelledby="summary-title">
+        <div class="summary-card">
+          <p class="eyebrow">Ronda completada</p>
+          <h2 id="summary-title">¡Buen flujo!</h2>
+          <p id="summary-copy">Aquí tienes el retrato de esta sesión.</p>
+          <div class="score-ring"><strong id="score-percent">0%</strong><span>dominadas</span></div>
+          <div class="stats" aria-label="Resultados de la ronda">
+            <div><span class="stat-dot knew-dot"></span><strong id="knew-count">0</strong><small>La supe</small></div>
+            <div><span class="stat-dot review-dot"></span><strong id="review-count">0</strong><small>Repasar</small></div>
+            <div><span class="stat-dot missed-dot"></span><strong id="missed-count">0</strong><small>Aún no</small></div>
+          </div>
+          <div class="summary-actions">
+            <button id="review-weak" class="primary-button" type="button">Repasar pendientes</button>
+            <button id="new-session" class="secondary-button" type="button">Nueva configuración</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
