@@ -7,6 +7,7 @@ Una aplicación web de flashcards interactiva para aprender inglés u otros idio
 - Configuración de tarjetas por ronda, tiempo por tarjeta y descansos sugeridos.
 - Importación mediante pegado de JSON o carga/arrastre de un archivo `.json`.
 - Tarjeta responsiva con giro 3D; funciona con clic, toque y teclado.
+- Modo claro u oscuro, recordado automáticamente en el navegador.
 - Evaluación en tres direcciones: izquierda = “sí la supe”, derecha = “aún no” y abajo = “repasar”.
 - Resumen de la ronda y acceso directo para repasar las tarjetas pendientes.
 - Sin compilación, cuentas, ni datos enviados a terceros.

@@ -23,6 +23,16 @@ const els = {
   toast: $("#toast"), scoreRing: $(".score-ring")
 };
 
+const themeToggle = $("#theme-toggle");
+
+function applyTheme(isDark) {
+  document.body.classList.toggle("dark-mode", isDark);
+  themeToggle.setAttribute("aria-pressed", String(isDark));
+  themeToggle.setAttribute("aria-label", isDark ? "Activar modo claro" : "Activar modo oscuro");
+  themeToggle.querySelector(".theme-icon").textContent = isDark ? "☀" : "☾";
+  themeToggle.querySelector(".theme-label").textContent = isDark ? "Modo claro" : "Modo oscuro";
+}
+
 function showScreen(name) {
   [els.setup, els.study, els.summary].forEach((screen) => screen.classList.add("hidden"));
   els[name].classList.remove("hidden");
@@ -238,6 +248,11 @@ $("#exit-session").addEventListener("click", () => { window.clearInterval(state.
 document.querySelectorAll(".answer-btn").forEach((button) => button.addEventListener("click", () => answer(button.dataset.result)));
 $("#new-session").addEventListener("click", () => showScreen("setup"));
 $("#review-weak").addEventListener("click", () => startRound([...state.results.review, ...state.results.missed], true));
+themeToggle.addEventListener("click", () => {
+  const willUseDarkMode = !document.body.classList.contains("dark-mode");
+  applyTheme(willUseDarkMode);
+  localStorage.setItem("cardflow-theme", willUseDarkMode ? "dark" : "light");
+});
 document.addEventListener("keydown", (event) => {
   if (els.study.classList.contains("hidden") || event.target.matches("input, textarea, select")) return;
   if (event.key === "ArrowLeft") answer("knew");
@@ -246,4 +261,5 @@ document.addEventListener("keydown", (event) => {
 });
 
 setupDrag();
+applyTheme(localStorage.getItem("cardflow-theme") === "dark" || (!localStorage.getItem("cardflow-theme") && window.matchMedia("(prefers-color-scheme: dark)").matches));
 readCards({ quiet: true });
