@@ -141,10 +141,10 @@ body.dark-mode .file-drop:hover, body.dark-mode .file-drop.dragover { background
 body.dark-mode pre { color: #e6e3ff; background: #272541; }
 body.dark-mode .secondary-button { color: #c6c0ff; border-color: #605b91; background: #292740; }
 body.dark-mode .card-stack::before { border-color: #334155; background: #151d2d; }.dark-mode .card-stack::after { background: #1e293b; }
-body.dark-mode .card-front { color: #F8FAFC; border-color: #334155; background: #1E293B; }
+body.dark-mode .card-front { color: #F8FAFC; border-color: #334155; background: #0F172A; }
 body.dark-mode .card-front .card-label { color: #E2E8F0; }.dark-mode .card-front .flip-note { color: #CBD5E1; }
-body.dark-mode .card-back { color: #F8FAFC; border-color: #38BDF8; background: #0F172A; box-shadow: 0 20px 55px rgba(14, 165, 233, .18); }
-body.dark-mode .card-back .card-label, body.dark-mode .card-back .flip-note { color: #7DD3FC; }.dark-mode .card-back p { color: #38BDF8; text-shadow: 0 0 22px rgba(56, 189, 248, .18); }
+body.dark-mode .card-back { color: #F3F4F6; border-color: #38BDF8; background: #374151; box-shadow: 0 20px 55px rgba(14, 165, 233, .18); }
+body.dark-mode .card-back .card-label, body.dark-mode .card-back .flip-note, body.dark-mode .card-back p { color: #F3F4F6; text-shadow: none; }
 body.dark-mode .answer-btn.knew:hover { background: rgba(34, 197, 94, .13); }.dark-mode .answer-btn.review:hover { background: rgba(245, 158, 11, .13); }.dark-mode .answer-btn.missed:hover { background: rgba(239, 68, 68, .13); }
 body.dark-mode .progress-track { background: #334155; }.dark-mode .timer-wrap { background: #1e3a5f; }.dark-mode .timer-wrap.warning { background: #4b3038; }
 body.dark-mode .score-ring::before { background: #25243a; }.dark-mode .stats div { border-color: var(--line); }

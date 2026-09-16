@@ -8,7 +8,7 @@ Una aplicación web de flashcards interactiva para aprender cualquier idioma: in
 - Importación mediante pegado de JSON o carga/arrastre de un archivo `.json`.
 - Tarjeta responsiva con giro 3D; funciona con clic, toque y teclado.
 - Modo oscuro de alto contraste como experiencia inicial; la preferencia elegida se recuerda en el navegador.
-- Frente slate y reverso azul nocturno con borde cian luminoso para que el volteo sea inequívoco y muy legible.
+- Frente azul-negro profundo y reverso gris elevado con borde cian luminoso para que el volteo sea inequívoco y muy legible.
 - Evaluación en tres direcciones: izquierda = “sí la supe” (verde), derecha = “aún no” (rojo) y abajo = “repasar” (amarillo).
 - Resumen de la ronda y acceso directo para repasar las tarjetas pendientes.
 - Sin compilación, cuentas, ni datos enviados a terceros.
