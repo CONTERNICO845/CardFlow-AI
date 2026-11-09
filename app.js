@@ -15,12 +15,17 @@ const state = {
 };
 
 const els = {
-  setup: $("#setup-screen"), study: $("#study-screen"), summary: $("#summary-screen"),
+  setup: $("#setup-screen"), study: $("#study-screen"), summary: $("#summary-screen"), quickExam: $("#quick-exams-screen"),
   jsonInput: $("#json-input"), jsonFile: $("#json-file"), dataStatus: $("#data-status"),
   cardsPerRound: $("#cards-per-round"), secondsPerCard: $("#seconds-per-card"), timerEnabled: $("#timer-enabled"), breakEnabled: $("#break-enabled"),
   start: $("#start-session"), card: $("#flashcard"), front: $("#card-front-text"), back: $("#card-back-text"),
   progress: $("#progress-label"), progressBar: $("#progress-bar"), timerWrap: $("#timer-wrap"), timer: $("#timer-value"),
-  toast: $("#toast"), scoreRing: $(".score-ring")
+  toast: $("#toast"), scoreRing: $(".score-ring"),
+  examBuilder: $("#exam-builder"), examWorkspace: $("#exam-workspace"), examPrompt: $("#exam-prompt"),
+  examJson: $("#exam-json-input"), examJsonStatus: $("#exam-json-status"), examTitle: $("#exam-title"),
+  examInstructions: $("#exam-instructions"), examParagraphs: $("#exam-paragraphs"), wordBank: $("#word-bank-words"),
+  wordBankToggle: $("#word-bank-toggle"), examResults: $("#exam-results"), examScore: $("#exam-score"),
+  examMistakes: $("#exam-mistakes"), tenseFeedback: $("#tense-feedback")
 };
 
 const themeToggle = $("#theme-toggle");
@@ -34,8 +39,15 @@ function applyTheme(isDark) {
 }
 
 function showScreen(name) {
-  [els.setup, els.study, els.summary].forEach((screen) => screen.classList.add("hidden"));
+  [els.setup, els.study, els.summary, els.quickExam].forEach((screen) => screen.classList.add("hidden"));
   els[name].classList.remove("hidden");
+  const route = name === "quickExam" ? "quick-exams" : "flashcards";
+  document.querySelectorAll(".nav-link").forEach((link) => {
+    const isActive = link.dataset.route === route;
+    link.classList.toggle("active", isActive);
+    if (isActive) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -44,6 +56,213 @@ function notify(message) {
   els.toast.classList.add("show");
   window.clearTimeout(notify.timeout);
   notify.timeout = window.setTimeout(() => els.toast.classList.remove("show"), 2800);
+}
+
+// Rutas de primer nivel. Añadir una nueva sección sólo requiere registrar su ruta y pantalla aquí.
+const routes = {
+  flashcards: "setup",
+  "quick-exams": "quickExam"
+};
+
+function navigate(route) {
+  const screen = routes[route];
+  if (!screen) return;
+  if (route === "flashcards") window.clearInterval(state.timerId);
+  showScreen(screen);
+}
+
+const EXAM_DIFFICULTIES = {
+  easy: { label: "Fácil", paragraphs: 2, blanks: 6 },
+  medium: { label: "Medio", paragraphs: 3, blanks: 10 },
+  hard: { label: "Difícil", paragraphs: 4, blanks: 14 }
+};
+
+const examState = { exam: null };
+
+function selectedVerbTenses() {
+  return Array.from($("#verb-tenses").selectedOptions).map((option) => option.value);
+}
+
+function currentExamDifficulty() {
+  return document.querySelector('input[name="exam-difficulty"]:checked').value;
+}
+
+function buildExamPrompt() {
+  const tenses = selectedVerbTenses();
+  const difficulty = EXAM_DIFFICULTIES[currentExamDifficulty()];
+  const tenseList = tenses.length ? tenses.join(", ") : "ninguno (selecciona al menos uno)";
+  const schema = {
+    version: "1.0",
+    title: "English verb tenses practice",
+    instructions: "Complete every blank with the correct form of the verb.",
+    difficulty: difficulty.label,
+    selectedTenses: ["Present Simple", "Past Simple"],
+    paragraphs: [{
+      id: "p1",
+      text: "Every morning, Laura {{b1}} coffee. Last Saturday, she {{b2}} a new recipe.",
+      questions: [
+        { id: "b1", sentence: "Every morning, Laura ___ coffee.", answer: "makes", verbTense: "Present Simple" },
+        { id: "b2", sentence: "Last Saturday, she ___ a new recipe.", answer: "tried", verbTense: "Past Simple" }
+      ]
+    }]
+  };
+  els.examPrompt.value = `Actúa como creador de exámenes de inglés. Genera un examen de completar espacios en blanco con exactamente ${difficulty.paragraphs} párrafos y ${difficulty.blanks} espacios. Dificultad: ${difficulty.label}.\n\nPractica únicamente estos tiempos verbales: ${tenseList}. Distribúyelos de forma equilibrada cuando sea posible.\n\nDevuelve EXCLUSIVAMENTE un objeto JSON válido, sin Markdown, comentarios ni texto antes o después. Debe cumplir exactamente estas reglas:\n- Usa la misma estructura y los mismos nombres de campos del ejemplo.\n- Cada párrafo debe incluir texto natural en inglés en \"text\" y los marcadores de sus espacios como {{id}}, por ejemplo {{b1}}.\n- Cada marcador debe aparecer una sola vez en el texto y debe tener una pregunta correspondiente en \"questions\".\n- Cada pregunta necesita un \"id\" único en todo el examen, una \"sentence\" completa con ___ en lugar del espacio, la \"answer\" correcta sin puntuación y el \"verbTense\" usado.\n- \"selectedTenses\" debe reflejar sólo los tiempos usados.\n- No reveles respuestas en \"text\".\n\nFormato JSON esperado:\n${JSON.stringify(schema, null, 2)}`;
+}
+
+function normalizeAnswer(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").toLocaleLowerCase();
+}
+
+function validateExam(raw) {
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch { throw new Error("El contenido no es JSON válido. Elimina cualquier texto o bloque Markdown de la respuesta de la IA."); }
+  if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") throw new Error("El examen debe ser un objeto JSON.");
+  if (!Array.isArray(parsed.paragraphs) || !parsed.paragraphs.length) throw new Error("El JSON necesita un arreglo 'paragraphs' con al menos un párrafo.");
+
+  const usedIds = new Set();
+  const paragraphs = parsed.paragraphs.map((paragraph, index) => {
+    if (!paragraph || typeof paragraph.text !== "string" || !paragraph.text.trim()) throw new Error(`El párrafo ${index + 1} necesita un campo 'text'.`);
+    if (!Array.isArray(paragraph.questions) || !paragraph.questions.length) throw new Error(`El párrafo ${index + 1} necesita preguntas en 'questions'.`);
+    const questions = paragraph.questions.map((question, questionIndex) => {
+      if (!question || typeof question.id !== "string" || !question.id.trim()) throw new Error(`La pregunta ${questionIndex + 1} del párrafo ${index + 1} no tiene un id válido.`);
+      const id = question.id.trim();
+      if (usedIds.has(id)) throw new Error(`El id '${id}' está repetido. Cada espacio debe tener un id único.`);
+      if (typeof question.sentence !== "string" || !question.sentence.includes("___")) throw new Error(`La pregunta '${question.id}' necesita una oración con ___ para el espacio.`);
+      if (typeof question.answer !== "string" || !question.answer.trim()) throw new Error(`La pregunta '${question.id}' necesita una respuesta válida.`);
+      if (typeof question.verbTense !== "string" || !question.verbTense.trim()) throw new Error(`La pregunta '${question.id}' necesita indicar su tiempo verbal.`);
+      const token = `{{${id}}}`;
+      const appearances = paragraph.text.split(token).length - 1;
+      if (appearances !== 1) throw new Error(`El marcador ${token} debe aparecer exactamente una vez en el texto del párrafo ${index + 1}.`);
+      usedIds.add(id);
+      return { id, sentence: question.sentence.trim(), answer: question.answer.trim(), verbTense: question.verbTense.trim() };
+    });
+    const unresolved = paragraph.text.match(/{{([^{}]+)}}/g) || [];
+    if (unresolved.length !== questions.length) throw new Error(`El párrafo ${index + 1} contiene un marcador sin una pregunta asociada.`);
+    return { id: typeof paragraph.id === "string" ? paragraph.id : `p${index + 1}`, text: paragraph.text.trim(), questions };
+  });
+
+  return {
+    title: typeof parsed.title === "string" && parsed.title.trim() ? parsed.title.trim() : "Completa los espacios",
+    instructions: typeof parsed.instructions === "string" && parsed.instructions.trim() ? parsed.instructions.trim() : "Completa cada espacio con la forma correcta del verbo.",
+    paragraphs
+  };
+}
+
+function shuffled(items) {
+  return shuffle(items);
+}
+
+function renderExam(exam) {
+  examState.exam = exam;
+  els.examTitle.textContent = exam.title;
+  els.examInstructions.textContent = exam.instructions;
+  els.examParagraphs.replaceChildren();
+  const answers = [];
+
+  exam.paragraphs.forEach((paragraph, paragraphIndex) => {
+    const paragraphElement = document.createElement("p");
+    paragraphElement.className = "exam-paragraph";
+    const label = document.createElement("span");
+    label.className = "exam-paragraph-label";
+    label.textContent = `Párrafo ${paragraphIndex + 1}`;
+    paragraphElement.append(label);
+    const questionById = new Map(paragraph.questions.map((question) => [question.id, question]));
+    const tokenPattern = /{{([^{}]+)}}/g;
+    let lastIndex = 0;
+    let match;
+    while ((match = tokenPattern.exec(paragraph.text))) {
+      paragraphElement.append(document.createTextNode(paragraph.text.slice(lastIndex, match.index)));
+      const question = questionById.get(match[1]);
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "blank-input";
+      input.dataset.questionId = question.id;
+      input.autocomplete = "off";
+      input.spellcheck = false;
+      input.setAttribute("aria-label", `Respuesta para ${question.verbTense}: ${question.sentence}`);
+      input.style.width = `${Math.max(88, Math.min(180, question.answer.length * 12 + 35))}px`;
+      paragraphElement.append(input);
+      lastIndex = tokenPattern.lastIndex;
+    }
+    paragraphElement.append(document.createTextNode(paragraph.text.slice(lastIndex)));
+    els.examParagraphs.append(paragraphElement);
+    answers.push(...paragraph.questions.map((question) => question.answer));
+  });
+
+  els.wordBank.replaceChildren();
+  shuffled([...new Set(answers)]).forEach((answer) => {
+    const chip = document.createElement("span");
+    chip.className = "word-chip";
+    chip.textContent = answer;
+    els.wordBank.append(chip);
+  });
+  els.wordBankToggle.checked = false;
+  els.wordBank.classList.add("hidden");
+  els.examResults.classList.add("hidden");
+  els.examBuilder.classList.add("hidden");
+  els.examWorkspace.classList.remove("hidden");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function gradeExam() {
+  if (!examState.exam) return;
+  const questions = examState.exam.paragraphs.flatMap((paragraph) => paragraph.questions);
+  const inputs = new Map(Array.from(document.querySelectorAll(".blank-input")).map((input) => [input.dataset.questionId, input]));
+  const mistakes = [];
+  questions.forEach((question) => {
+    const input = inputs.get(question.id);
+    const isCorrect = normalizeAnswer(input.value) === normalizeAnswer(question.answer);
+    input.classList.toggle("correct", isCorrect);
+    input.classList.toggle("incorrect", !isCorrect);
+    if (!isCorrect) mistakes.push({ ...question, given: input.value.trim() });
+  });
+  const correct = questions.length - mistakes.length;
+  els.examScore.textContent = `Resultado: ${correct} de ${questions.length} respuestas correctas (${Math.round((correct / questions.length) * 100)}%).`;
+  els.examMistakes.replaceChildren();
+  if (!mistakes.length) {
+    const success = document.createElement("p");
+    success.textContent = "¡Excelente! No hubo respuestas incorrectas. Has dominado los tiempos verbales de este examen.";
+    els.examMistakes.append(success);
+    els.tenseFeedback.textContent = "Siguiente paso: intenta otra dificultad o combina más tiempos verbales.";
+  } else {
+    const list = document.createElement("div");
+    list.className = "mistake-list";
+    mistakes.forEach((mistake) => {
+      const item = document.createElement("article");
+      item.className = "mistake";
+      const given = document.createElement("div");
+      const givenLabel = document.createElement("span");
+      givenLabel.textContent = `Tu respuesta · ${mistake.verbTense}`;
+      const givenValue = document.createElement("strong");
+      givenValue.textContent = mistake.given || "Sin respuesta";
+      given.append(givenLabel, givenValue);
+      const expected = document.createElement("div");
+      const expectedLabel = document.createElement("span");
+      expectedLabel.textContent = "Respuesta correcta";
+      const expectedValue = document.createElement("strong");
+      expectedValue.textContent = mistake.answer;
+      expected.append(expectedLabel, expectedValue);
+      item.append(given, expected);
+      list.append(item);
+    });
+    els.examMistakes.append(list);
+    const tenseCounts = mistakes.reduce((counts, mistake) => {
+      counts[mistake.verbTense] = (counts[mistake.verbTense] || 0) + 1;
+      return counts;
+    }, {});
+    const focus = Object.entries(tenseCounts).sort((a, b) => b[1] - a[1]).map(([tense, count]) => `${tense} (${count})`).join(", ");
+    els.tenseFeedback.replaceChildren();
+    const heading = document.createElement("h3");
+    heading.textContent = "Qué reforzar";
+    const feedback = document.createElement("p");
+    feedback.append("Te conviene practicar: ");
+    const focusText = document.createElement("strong");
+    focusText.textContent = focus;
+    feedback.append(focusText, ". Revisa las oraciones marcadas y compara la forma verbal con el contexto de tiempo.");
+    els.tenseFeedback.append(heading, feedback);
+  }
+  els.examResults.classList.remove("hidden");
+  els.examResults.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function validateCards(raw) {
@@ -248,6 +467,36 @@ $("#exit-session").addEventListener("click", () => { window.clearInterval(state.
 document.querySelectorAll(".answer-btn").forEach((button) => button.addEventListener("click", () => answer(button.dataset.result)));
 $("#new-session").addEventListener("click", () => showScreen("setup"));
 $("#review-weak").addEventListener("click", () => startRound([...state.results.review, ...state.results.missed], true));
+document.querySelectorAll(".nav-link").forEach((link) => link.addEventListener("click", () => navigate(link.dataset.route)));
+$(".app-logo").addEventListener("click", (event) => { event.preventDefault(); navigate("flashcards"); });
+
+$("#verb-tenses").addEventListener("change", buildExamPrompt);
+document.querySelectorAll('input[name="exam-difficulty"]').forEach((input) => input.addEventListener("change", buildExamPrompt));
+$("#copy-exam-prompt").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(els.examPrompt.value); notify("Instrucción del examen copiada."); }
+  catch { notify("Selecciona y copia manualmente la instrucción."); }
+});
+$("#load-exam").addEventListener("click", () => {
+  try {
+    const exam = validateExam(els.examJson.value);
+    const blanks = exam.paragraphs.reduce((total, paragraph) => total + paragraph.questions.length, 0);
+    els.examJsonStatus.textContent = `✓ Examen válido: ${exam.paragraphs.length} párrafo(s) y ${blanks} espacio(s).`;
+    els.examJsonStatus.className = "data-status valid";
+    renderExam(exam);
+  } catch (error) {
+    els.examJsonStatus.textContent = error.message;
+    els.examJsonStatus.className = "data-status invalid";
+    notify(error.message);
+  }
+});
+$("#new-exam").addEventListener("click", () => {
+  els.examWorkspace.classList.add("hidden");
+  els.examBuilder.classList.remove("hidden");
+  els.examJson.focus();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+els.wordBankToggle.addEventListener("change", () => els.wordBank.classList.toggle("hidden", !els.wordBankToggle.checked));
+$("#grade-exam").addEventListener("click", gradeExam);
 themeToggle.addEventListener("click", () => {
   const willUseDarkMode = !document.body.classList.contains("dark-mode");
   applyTheme(willUseDarkMode);
@@ -264,3 +513,4 @@ setupDrag();
 const savedTheme = localStorage.getItem("cardflow-theme");
 applyTheme(savedTheme ? savedTheme === "dark" : true);
 readCards({ quiet: true });
+buildExamPrompt();

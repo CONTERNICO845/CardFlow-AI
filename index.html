@@ -12,6 +12,13 @@
   </head>
   <body class="dark-mode">
     <main class="app-shell">
+      <header class="app-header">
+        <a class="app-logo" href="#flashcards" aria-label="CardFlow AI, inicio"><span aria-hidden="true">C</span> CardFlow <em>AI</em></a>
+        <nav class="main-nav" aria-label="Secciones principales">
+          <button class="nav-link active" type="button" data-route="flashcards" aria-current="page">Flashcards</button>
+          <button class="nav-link" type="button" data-route="quick-exams">Exámenes Rápidos</button>
+        </nav>
+      </header>
       <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Activar modo oscuro">
         <span class="theme-icon" aria-hidden="true">☾</span>
         <span class="theme-label">Modo oscuro</span>
@@ -144,6 +151,92 @@
             <button id="new-session" class="secondary-button" type="button">Nueva configuración</button>
           </div>
         </div>
+      </section>
+
+      <section id="quick-exams-screen" class="screen quick-exams-screen hidden" aria-labelledby="quick-exams-title">
+        <header class="hero compact-hero">
+          <p class="eyebrow">Práctica guiada</p>
+          <h1 id="quick-exams-title">Exámenes <em>Rápidos</em></h1>
+          <p class="hero-copy">Configura tu práctica, genera una instrucción para tu IA favorita y resuelve el examen aquí.</p>
+        </header>
+
+        <div id="exam-builder" class="exam-builder">
+          <div class="exam-grid">
+            <section class="panel exam-config-panel" aria-labelledby="exam-config-title">
+              <div class="panel-heading"><span class="step">01</span><h2 id="exam-config-title">Configura el examen</h2></div>
+              <label class="exam-field" for="verb-tenses">Tiempos verbales a practicar</label>
+              <select id="verb-tenses" multiple size="8" aria-describedby="verb-tenses-hint">
+                <option value="Present Simple" selected>Present Simple</option>
+                <option value="Present Continuous">Present Continuous</option>
+                <option value="Present Perfect">Present Perfect</option>
+                <option value="Present Perfect Continuous">Present Perfect Continuous</option>
+                <option value="Past Simple" selected>Past Simple</option>
+                <option value="Past Continuous">Past Continuous</option>
+                <option value="Past Perfect">Past Perfect</option>
+                <option value="Past Perfect Continuous">Past Perfect Continuous</option>
+                <option value="Future Simple">Future Simple</option>
+                <option value="Future Continuous">Future Continuous</option>
+                <option value="Future Perfect">Future Perfect</option>
+                <option value="Future Perfect Continuous">Future Perfect Continuous</option>
+              </select>
+              <p id="verb-tenses-hint" class="field-hint">Usa Ctrl/Cmd (o toca varias opciones) para seleccionar más de un tiempo.</p>
+              <fieldset class="difficulty-fieldset">
+                <legend>Dificultad</legend>
+                <div class="difficulty-options">
+                  <label><input type="radio" name="exam-difficulty" value="easy" checked /><span><strong>Fácil</strong><small>2 párrafos · 6 espacios</small></span></label>
+                  <label><input type="radio" name="exam-difficulty" value="medium" /><span><strong>Medio</strong><small>3 párrafos · 10 espacios</small></span></label>
+                  <label><input type="radio" name="exam-difficulty" value="hard" /><span><strong>Difícil</strong><small>4 párrafos · 14 espacios</small></span></label>
+                </div>
+              </fieldset>
+            </section>
+
+            <section class="panel prompt-generator-panel" aria-labelledby="prompt-generator-title">
+              <div class="panel-heading"><span class="step">02</span><h2 id="prompt-generator-title">Genera la instrucción</h2></div>
+              <p class="panel-copy">Copia este texto y pégalo en una IA externa. El formato solicitado coincide exactamente con el lector de este módulo.</p>
+              <textarea id="exam-prompt" class="exam-prompt" rows="15" readonly spellcheck="false" aria-label="Instrucción generada para la IA"></textarea>
+              <button id="copy-exam-prompt" class="secondary-button" type="button">Copiar instrucción</button>
+            </section>
+          </div>
+
+          <section class="panel json-import-panel" aria-labelledby="exam-json-title">
+            <div class="panel-heading"><span class="step">03</span><h2 id="exam-json-title">Pega el examen generado</h2></div>
+            <p class="panel-copy">Pega únicamente el JSON que respondió la IA. Puedes usar el formato de ejemplo indicado en la instrucción.</p>
+            <textarea id="exam-json-input" rows="10" spellcheck="false" placeholder='{"version":"1.0","title":"...","paragraphs":[...]}'></textarea>
+            <div class="exam-import-actions">
+              <p id="exam-json-status" class="data-status" aria-live="polite">Aún no has cargado un examen.</p>
+              <button id="load-exam" class="primary-button" type="button">Cargar examen <span aria-hidden="true">→</span></button>
+            </div>
+          </section>
+        </div>
+
+        <section id="exam-workspace" class="exam-workspace hidden" aria-live="polite">
+          <header class="exam-session-header">
+            <div>
+              <p class="eyebrow">Examen en curso</p>
+              <h2 id="exam-title">Completa los espacios</h2>
+              <p id="exam-instructions" class="panel-copy"></p>
+            </div>
+            <button id="new-exam" class="secondary-button" type="button">Cambiar examen</button>
+          </header>
+          <div class="exam-layout">
+            <section class="exam-paper" aria-label="Preguntas del examen">
+              <div id="exam-paragraphs"></div>
+              <button id="grade-exam" class="primary-button grade-button" type="button">Calificar respuestas</button>
+            </section>
+            <aside class="word-bank" aria-labelledby="word-bank-title">
+              <div class="word-bank-heading"><h3 id="word-bank-title">Banco de palabras</h3><label class="word-bank-switch"><input id="word-bank-toggle" type="checkbox" /><span>Mostrar ayuda</span></label></div>
+              <p class="word-bank-copy">Actívalo si necesitas contexto. Las palabras aparecen mezcladas.</p>
+              <div id="word-bank-words" class="word-bank-words hidden" aria-live="polite"></div>
+            </aside>
+          </div>
+          <section id="exam-results" class="exam-results hidden" aria-labelledby="exam-results-title">
+            <p class="eyebrow">Resultados</p>
+            <h2 id="exam-results-title">Revisa tu práctica</h2>
+            <p id="exam-score" class="exam-score"></p>
+            <div id="exam-mistakes"></div>
+            <div id="tense-feedback" class="tense-feedback"></div>
+          </section>
+        </section>
       </section>
     </main>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
