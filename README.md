@@ -24,10 +24,10 @@ Formato esperado:
 1. Selecciona uno o más tiempos verbales y la dificultad. La dificultad define la extensión: fácil (2 párrafos/6 espacios), medio (3/10) o difícil (4/14).
 2. Copia la instrucción generada y pégala en la IA de tu elección.
 3. Pega el objeto JSON devuelto en la aplicación y cárgalo.
-4. Completa los espacios; el Banco de Palabras puede activarse como ayuda.
+4. Completa los espacios; en fácil y medio verás el verbo base entre paréntesis, mientras que en difícil no hay pista. El Banco de Palabras puede activarse como ayuda y sólo muestra verbos en forma base.
 5. Al calificar, la comparación ignora mayúsculas, minúsculas y espacios repetidos. Los resultados indican las respuestas erróneas y agrupan los errores por tiempo verbal.
 
-El lector valida que cada marcador `{{id}}` del texto tenga una pregunta asociada. La IA debe devolver únicamente un objeto JSON con esta forma:
+El lector valida que cada marcador `{{id}}` del texto tenga una pregunta asociada. Cada pregunta requiere tanto `baseForm` (infinitivo, usado para las pistas) como `correctAnswer` (forma conjugada que se valida). La IA debe devolver únicamente un objeto JSON con esta forma:
 
 ```json
 {
@@ -44,13 +44,15 @@ El lector valida que cada marcador `{{id}}` del texto tenga una pregunta asociad
         {
           "id": "b1",
           "sentence": "Every morning, Laura ___ coffee.",
-          "answer": "makes",
+          "baseForm": "make",
+          "correctAnswer": "makes",
           "verbTense": "Present Simple"
         },
         {
           "id": "b2",
           "sentence": "Last Saturday, she ___ a new recipe.",
-          "answer": "tried",
+          "baseForm": "try",
+          "correctAnswer": "tried",
           "verbTense": "Past Simple"
         }
       ]

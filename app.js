@@ -101,12 +101,12 @@ function buildExamPrompt() {
       id: "p1",
       text: "Every morning, Laura {{b1}} coffee. Last Saturday, she {{b2}} a new recipe.",
       questions: [
-        { id: "b1", sentence: "Every morning, Laura ___ coffee.", answer: "makes", verbTense: "Present Simple" },
-        { id: "b2", sentence: "Last Saturday, she ___ a new recipe.", answer: "tried", verbTense: "Past Simple" }
+        { id: "b1", sentence: "Every morning, Laura ___ coffee.", baseForm: "make", correctAnswer: "makes", verbTense: "Present Simple" },
+        { id: "b2", sentence: "Last Saturday, she ___ a new recipe.", baseForm: "try", correctAnswer: "tried", verbTense: "Past Simple" }
       ]
     }]
   };
-  els.examPrompt.value = `Actúa como creador de exámenes de inglés. Genera un examen de completar espacios en blanco con exactamente ${difficulty.paragraphs} párrafos y ${difficulty.blanks} espacios. Dificultad: ${difficulty.label}.\n\nPractica únicamente estos tiempos verbales: ${tenseList}. Distribúyelos de forma equilibrada cuando sea posible.\n\nDevuelve EXCLUSIVAMENTE un objeto JSON válido, sin Markdown, comentarios ni texto antes o después. Debe cumplir exactamente estas reglas:\n- Usa la misma estructura y los mismos nombres de campos del ejemplo.\n- Cada párrafo debe incluir texto natural en inglés en \"text\" y los marcadores de sus espacios como {{id}}, por ejemplo {{b1}}.\n- Cada marcador debe aparecer una sola vez en el texto y debe tener una pregunta correspondiente en \"questions\".\n- Cada pregunta necesita un \"id\" único en todo el examen, una \"sentence\" completa con ___ en lugar del espacio, la \"answer\" correcta sin puntuación y el \"verbTense\" usado.\n- \"selectedTenses\" debe reflejar sólo los tiempos usados.\n- No reveles respuestas en \"text\".\n\nFormato JSON esperado:\n${JSON.stringify(schema, null, 2)}`;
+  els.examPrompt.value = `Actúa como creador de exámenes de inglés. Genera un examen de completar espacios en blanco con exactamente ${difficulty.paragraphs} párrafos y ${difficulty.blanks} espacios. Dificultad: ${difficulty.label}.\n\nPractica únicamente estos tiempos verbales: ${tenseList}. Distribúyelos de forma equilibrada cuando sea posible.\n\nDevuelve EXCLUSIVAMENTE un objeto JSON válido, sin Markdown, comentarios ni texto antes o después. Debe cumplir exactamente estas reglas:\n- Usa la misma estructura y los mismos nombres de campos del ejemplo.\n- El campo \"difficulty\" debe ser exactamente \"${difficulty.label}\".\n- Cada párrafo debe incluir texto natural en inglés en \"text\" y los marcadores de sus espacios como {{id}}, por ejemplo {{b1}}.\n- Cada marcador debe aparecer una sola vez en el texto y debe tener una pregunta correspondiente en \"questions\".\n- Cada pregunta necesita un \"id\" único en todo el examen, una \"sentence\" completa con ___ en lugar del espacio, la \"baseForm\" en infinitivo (por ejemplo, \"be\"), la \"correctAnswer\" conjugada que completa el texto (por ejemplo, \"are\") y el \"verbTense\" usado.\n- \"selectedTenses\" debe reflejar sólo los tiempos usados.\n- No reveles las formas correctas en \"text\".\n\nFormato JSON esperado:\n${JSON.stringify(schema, null, 2)}`;
 }
 
 function normalizeAnswer(value) {
@@ -117,6 +117,8 @@ function validateExam(raw) {
   let parsed;
   try { parsed = JSON.parse(raw); } catch { throw new Error("El contenido no es JSON válido. Elimina cualquier texto o bloque Markdown de la respuesta de la IA."); }
   if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") throw new Error("El examen debe ser un objeto JSON.");
+  const supportedDifficulties = Object.values(EXAM_DIFFICULTIES).map((difficulty) => difficulty.label);
+  if (!supportedDifficulties.includes(parsed.difficulty)) throw new Error("El examen debe incluir 'difficulty' con uno de estos valores: Fácil, Medio o Difícil.");
   if (!Array.isArray(parsed.paragraphs) || !parsed.paragraphs.length) throw new Error("El JSON necesita un arreglo 'paragraphs' con al menos un párrafo.");
 
   const usedIds = new Set();
@@ -128,13 +130,14 @@ function validateExam(raw) {
       const id = question.id.trim();
       if (usedIds.has(id)) throw new Error(`El id '${id}' está repetido. Cada espacio debe tener un id único.`);
       if (typeof question.sentence !== "string" || !question.sentence.includes("___")) throw new Error(`La pregunta '${question.id}' necesita una oración con ___ para el espacio.`);
-      if (typeof question.answer !== "string" || !question.answer.trim()) throw new Error(`La pregunta '${question.id}' necesita una respuesta válida.`);
+      if (typeof question.baseForm !== "string" || !question.baseForm.trim()) throw new Error(`La pregunta '${question.id}' necesita una forma base válida en 'baseForm'.`);
+      if (typeof question.correctAnswer !== "string" || !question.correctAnswer.trim()) throw new Error(`La pregunta '${question.id}' necesita una respuesta conjugada válida en 'correctAnswer'.`);
       if (typeof question.verbTense !== "string" || !question.verbTense.trim()) throw new Error(`La pregunta '${question.id}' necesita indicar su tiempo verbal.`);
       const token = `{{${id}}}`;
       const appearances = paragraph.text.split(token).length - 1;
       if (appearances !== 1) throw new Error(`El marcador ${token} debe aparecer exactamente una vez en el texto del párrafo ${index + 1}.`);
       usedIds.add(id);
-      return { id, sentence: question.sentence.trim(), answer: question.answer.trim(), verbTense: question.verbTense.trim() };
+      return { id, sentence: question.sentence.trim(), baseForm: question.baseForm.trim(), correctAnswer: question.correctAnswer.trim(), verbTense: question.verbTense.trim() };
     });
     const unresolved = paragraph.text.match(/{{([^{}]+)}}/g) || [];
     if (unresolved.length !== questions.length) throw new Error(`El párrafo ${index + 1} contiene un marcador sin una pregunta asociada.`);
@@ -144,6 +147,7 @@ function validateExam(raw) {
   return {
     title: typeof parsed.title === "string" && parsed.title.trim() ? parsed.title.trim() : "Completa los espacios",
     instructions: typeof parsed.instructions === "string" && parsed.instructions.trim() ? parsed.instructions.trim() : "Completa cada espacio con la forma correcta del verbo.",
+    difficulty: parsed.difficulty,
     paragraphs
   };
 }
@@ -157,7 +161,7 @@ function renderExam(exam) {
   els.examTitle.textContent = exam.title;
   els.examInstructions.textContent = exam.instructions;
   els.examParagraphs.replaceChildren();
-  const answers = [];
+  const baseForms = [];
 
   exam.paragraphs.forEach((paragraph, paragraphIndex) => {
     const paragraphElement = document.createElement("p");
@@ -180,20 +184,21 @@ function renderExam(exam) {
       input.autocomplete = "off";
       input.spellcheck = false;
       input.setAttribute("aria-label", `Respuesta para ${question.verbTense}: ${question.sentence}`);
-      input.style.width = `${Math.max(88, Math.min(180, question.answer.length * 12 + 35))}px`;
+      input.style.width = `${Math.max(88, Math.min(180, question.correctAnswer.length * 12 + 35))}px`;
       paragraphElement.append(input);
+      if (exam.difficulty !== "Difícil") paragraphElement.append(document.createTextNode(` (${question.baseForm})`));
       lastIndex = tokenPattern.lastIndex;
     }
     paragraphElement.append(document.createTextNode(paragraph.text.slice(lastIndex)));
     els.examParagraphs.append(paragraphElement);
-    answers.push(...paragraph.questions.map((question) => question.answer));
+    baseForms.push(...paragraph.questions.map((question) => question.baseForm));
   });
 
   els.wordBank.replaceChildren();
-  shuffled([...new Set(answers)]).forEach((answer) => {
+  shuffled([...new Set(baseForms)]).forEach((baseForm) => {
     const chip = document.createElement("span");
     chip.className = "word-chip";
-    chip.textContent = answer;
+    chip.textContent = baseForm;
     els.wordBank.append(chip);
   });
   els.wordBankToggle.checked = false;
@@ -211,7 +216,7 @@ function gradeExam() {
   const mistakes = [];
   questions.forEach((question) => {
     const input = inputs.get(question.id);
-    const isCorrect = normalizeAnswer(input.value) === normalizeAnswer(question.answer);
+    const isCorrect = normalizeAnswer(input.value) === normalizeAnswer(question.correctAnswer);
     input.classList.toggle("correct", isCorrect);
     input.classList.toggle("incorrect", !isCorrect);
     if (!isCorrect) mistakes.push({ ...question, given: input.value.trim() });
@@ -240,7 +245,7 @@ function gradeExam() {
       const expectedLabel = document.createElement("span");
       expectedLabel.textContent = "Respuesta correcta";
       const expectedValue = document.createElement("strong");
-      expectedValue.textContent = mistake.answer;
+      expectedValue.textContent = mistake.correctAnswer;
       expected.append(expectedLabel, expectedValue);
       item.append(given, expected);
       list.append(item);
